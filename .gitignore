@@ -41,3 +41,11 @@ example
 # generated native folders
 /ios
 /android
+
+# credenciais do Firebase (baixe no console do projeto)
+google-services.json
+GoogleService-Info.plist
+
+# variáveis locais (URL da API)
+.env
+*.backup

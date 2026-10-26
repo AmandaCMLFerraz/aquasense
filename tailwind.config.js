@@ -32,7 +32,7 @@ module.exports = {
           foreground: "hsl(var(--muted-foreground) / <alpha-value>)",
         },
 
-        subtle: "hsl(var(--subtle-foreground) / <alpha-value>)",
+        "subtle-foreground": "hsl(var(--subtle-foreground) / <alpha-value>)",
 
         accent: {
           DEFAULT: "hsl(var(--accent) / <alpha-value>)",
