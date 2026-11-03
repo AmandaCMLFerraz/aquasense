@@ -226,7 +226,6 @@ export type ConsumerUnit = {
   address: Address;
   numberResidents: number;
   dailyConsumptionLimit: number;
-  hourlyConsumptionLimit: number;
   leakDurationMinutes: number;
   deviceCount: number;
 };
@@ -236,7 +235,6 @@ export type ConsumerUnitInput = {
   address: Address;
   numberResidents: number;
   dailyConsumptionLimit: number;
-  hourlyConsumptionLimit: number;
   leakDurationMinutes: number;
 };
 

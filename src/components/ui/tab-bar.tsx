@@ -129,7 +129,7 @@ export function TabBar({
         pointerEvents="none"
         style={{ height: TAB_BAR_BOTTOM_MARGIN }}
       >
-        <View style={{ opacity: 0.7 }}>
+        <View style={{ opacity: 0.7, marginBottom: 12 }}>
           <Logo width={64} />
         </View>
       </View>

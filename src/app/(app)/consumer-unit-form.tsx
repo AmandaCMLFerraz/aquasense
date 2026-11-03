@@ -65,7 +65,6 @@ export default function ConsumerUnitFormScreen() {
   );
   const [leakMinutes, setLeakMinutes] = useState("60");
   const [deviceCount, setDeviceCount] = useState(0);
-  const hourlyLimit = Math.round((dailyConsumptionLimit / 24) * 10) / 10;
   const [errors, setErrors] = useState<FieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
@@ -244,7 +243,6 @@ export default function ConsumerUnitFormScreen() {
       zipCode,
       numberResidents,
       dailyConsumptionLimit,
-      hourlyConsumptionLimit: hourlyLimit,
       leakDurationMinutes: leakMinutes,
     });
     if (!result.success) {
@@ -265,7 +263,6 @@ export default function ConsumerUnitFormScreen() {
       },
       numberResidents: result.data.numberResidents,
       dailyConsumptionLimit: result.data.dailyConsumptionLimit,
-      hourlyConsumptionLimit: result.data.hourlyConsumptionLimit,
       leakDurationMinutes: result.data.leakDurationMinutes,
     };
 
@@ -566,18 +563,6 @@ export default function ConsumerUnitFormScreen() {
             )}
           </View>
 
-          <View>
-            <Input
-              label="Limite de consumo por hora (L)"
-              editable={false}
-              value={String(hourlyLimit).replace(".", ",")}
-            />
-            {errors.hourlyConsumptionLimit && (
-              <Text className="text-xs font-bold text-destructive mt-1">
-                {errors.hourlyConsumptionLimit}
-              </Text>
-            )}
-          </View>
           <View>
             <Input
               label="Tempo de fluxo contínuo para alertar vazamento (min)"

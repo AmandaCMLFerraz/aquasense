@@ -135,9 +135,6 @@ export const consumerUnitSchema = z.object({
   dailyConsumptionLimit: z.coerce
     .number()
     .positive("O limite diário deve ser maior que zero"),
-  hourlyConsumptionLimit: z.coerce
-    .number()
-    .positive("O limite por hora deve ser maior que zero"),
   leakDurationMinutes: z.coerce
     .number()
     .positive("Informe um tempo de vazamento maior que zero"),
