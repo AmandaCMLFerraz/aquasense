@@ -324,8 +324,8 @@ export default function ConsumerUnitFormScreen() {
       </View>
 
       <ScrollView
-        className="flex-1"
-        contentContainerClassName="pt-4 pb-10"
+        className="flex-1 mt-4"
+        contentContainerClassName="pb-10"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >

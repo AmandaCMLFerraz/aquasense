@@ -63,7 +63,8 @@ function HistoryDatePicker({
     if (visible) setViewDate(atMidnight(value));
   }
 
-  const isMonthMode = period === "mes";
+  const isYearMode = period === "ano";
+  const isMonthMode = period === "mes" || isYearMode;
   const isWeekMode = period === "semana";
 
   const viewYear = viewDate.getFullYear();
@@ -100,6 +101,13 @@ function HistoryDatePicker({
 
   function selectDay(date: Date) {
     if (isAfterToday(date, today)) return;
+    onChange(date);
+    onClose();
+  }
+
+  function selectYear(year: number) {
+    const date =
+      year === today.getFullYear() ? today : new Date(year, 11, 31);
     onChange(date);
     onClose();
   }
@@ -161,7 +169,41 @@ function HistoryDatePicker({
             </Pressable>
           </View>
 
-          {isMonthMode ? (
+          {isYearMode ? (
+            <View className="flex-row flex-wrap">
+              {Array.from(
+                { length: 6 },
+                (_, i) => viewYear - 5 + i,
+              )
+                .filter((year) => year <= today.getFullYear())
+                .map((year) => {
+                  const isSelected = year === value.getFullYear();
+
+                  return (
+                    <View key={year} className="w-1/3 p-1">
+                      <Pressable
+                        onPress={() => selectYear(year)}
+                        className={cn(
+                          "items-center justify-center rounded-md py-3 active:opacity-70",
+                          isSelected ? "bg-primary" : "bg-secondary",
+                        )}
+                      >
+                        <Text
+                          className={cn(
+                            "text-sm font-bold",
+                            isSelected
+                              ? "text-primary-foreground"
+                              : "text-foreground",
+                          )}
+                        >
+                          {year}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  );
+                })}
+            </View>
+          ) : isMonthMode ? (
             <View className="flex-row flex-wrap">
               {MONTH_LABELS_SHORT.map((label, monthIndex) => {
                 const monthDate = new Date(viewYear, monthIndex, 1);

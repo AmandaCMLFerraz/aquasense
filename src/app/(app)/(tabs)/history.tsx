@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import {
+  ActivityIndicator,
   type LayoutChangeEvent,
   Pressable,
   ScrollView,
@@ -29,6 +30,7 @@ import {
   type HistorySummary,
 } from "@/lib/api";
 import { cn } from "@/utils/cn";
+import { formatLiters } from "@/utils/format-liters";
 import { useThemeColors } from "@/utils/colors";
 import { formatPeriodLabel, toDateParam } from "@/utils/history-date";
 
@@ -36,18 +38,20 @@ const PERIODS: { key: HistoryPeriod; label: string }[] = [
   { key: "dia", label: "Dia" },
   { key: "semana", label: "Semana" },
   { key: "mes", label: "Mês" },
+  { key: "ano", label: "Ano" },
 ];
 
 const PERIOD_TITLE: Record<HistoryPeriod, string> = {
   dia: "Consumo do dia",
   semana: "Consumo da semana",
   mes: "Consumo do mês",
+  ano: "Consumo do ano",
 };
 
 const CHART_MAX_HEIGHT = 120;
 const MONTH_BAR_WIDTH = 28;
 const CHART_GAP = 8;
-const HOURS_PER_BUCKET = 3;
+const HOURS_PER_BUCKET = 1;
 
 function getCurrentBucketIndex(
   period: HistoryPeriod,
@@ -72,6 +76,12 @@ function getCurrentBucketIndex(
       : undefined;
   }
 
+  if (period === "ano") {
+    return reference.getFullYear() === today.getFullYear()
+      ? today.getMonth()
+      : undefined;
+  }
+
   return reference.getFullYear() === today.getFullYear() &&
     reference.getMonth() === today.getMonth()
     ? today.getDate() - 1
@@ -92,10 +102,6 @@ const LEGEND_ITEMS = [
   { label: "Pico", dotClassName: "bg-chart-peak" },
 ];
 
-function formatLiters(value: number) {
-  return `${Math.round(value).toLocaleString("pt-BR")} L`;
-}
-
 export default function HistoryScreen() {
   const colors = useThemeColors();
   const tabBarClearance = useTabBarClearance();
@@ -105,13 +111,22 @@ export default function HistoryScreen() {
   const [period, setPeriod] = useState<HistoryPeriod>("semana");
   const [referenceDate, setReferenceDate] = useState(() => new Date());
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
-  const [summary, setSummary] = useState<HistorySummary | null>(null);
+  const [summaries, setSummaries] = useState<Record<string, HistorySummary>>(
+    {},
+  );
   const [segmentedControlWidth, setSegmentedControlWidth] = useState(0);
   const selectedPeriodIndex = PERIODS.findIndex(({ key }) => key === period);
   const today = useMemo(() => new Date(), []);
   const chartScrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const autoScrolledMonthRef = useRef<string | null>(null);
   const [chartViewportWidth, setChartViewportWidth] = useState(0);
+  const [selection, setSelection] = useState<{
+    scope: string;
+    index: number;
+  } | null>(null);
+  const selectionScope = `${period}-${referenceDate.getTime()}`;
+  const selectedIndex =
+    selection?.scope === selectionScope ? selection.index : null;
 
   const handleSegmentedControlLayout = useCallback(
     (event: LayoutChangeEvent) => {
@@ -122,6 +137,12 @@ export default function HistoryScreen() {
 
   const segmentWidth =
     (segmentedControlWidth - SEGMENTED_CONTROL_PADDING * 2) / PERIODS.length;
+
+  const summaryKeyOf = useCallback(
+    (targetPeriod: HistoryPeriod, targetDate: Date) =>
+      `${selectedUnitId ?? "all"}|${targetPeriod}|${toDateParam(targetDate)}`,
+    [selectedUnitId],
+  );
 
   const loadHistory = useCallback(
     async (targetPeriod: HistoryPeriod, targetDate: Date) => {
@@ -134,13 +155,19 @@ export default function HistoryScreen() {
           toDateParam(targetDate),
           selectedUnitId ?? undefined,
         );
-        setSummary(data);
+        const key = summaryKeyOf(targetPeriod, targetDate);
+        setSummaries((current) => ({ ...current, [key]: data }));
       } catch {
         showToast("Não foi possível carregar o histórico de consumo.");
       }
     },
-    [accessToken, selectedUnitId, showToast],
+    [accessToken, selectedUnitId, showToast, summaryKeyOf],
   );
+
+  // Mostra o último resultado deste período/data (se houver) enquanto o novo
+  // carrega; sem cache, exibe um indicador em vez de barras do período anterior.
+  const summary = summaries[summaryKeyOf(period, referenceDate)] ?? null;
+  const isLoading = summary === null;
 
   useFocusEffect(
     useCallback(() => {
@@ -149,17 +176,23 @@ export default function HistoryScreen() {
   );
 
   const isMonth = period === "mes";
-  const currentBucketIndex = getCurrentBucketIndex(period, referenceDate, today);
+  const isScrollable = isMonth || period === "dia";
+  const currentBucketIndex = getCurrentBucketIndex(
+    period,
+    referenceDate,
+    today,
+  );
 
   const scrollChartToCurrent = useCallback(
     (contentWidth: number) => {
-      if (!isMonth) {
+      if (!isScrollable) {
         autoScrolledMonthRef.current = null;
         return;
       }
-      if (chartViewportWidth === 0 || contentWidth <= chartViewportWidth) return;
+      if (chartViewportWidth === 0 || contentWidth <= chartViewportWidth)
+        return;
 
-      const monthKey = `${referenceDate.getFullYear()}-${referenceDate.getMonth()}`;
+      const monthKey = `${period}-${referenceDate.getFullYear()}-${referenceDate.getMonth()}-${referenceDate.getDate()}`;
       if (autoScrolledMonthRef.current === monthKey) return;
       autoScrolledMonthRef.current = monthKey;
 
@@ -167,13 +200,25 @@ export default function HistoryScreen() {
         (currentBucketIndex ?? 0) * (MONTH_BAR_WIDTH + CHART_GAP) +
         MONTH_BAR_WIDTH / 2;
       const maxX = Math.max(0, contentWidth - chartViewportWidth);
-      const x = Math.min(maxX, Math.max(0, barCenter - chartViewportWidth / 2));
+      const barStart =
+        (currentBucketIndex ?? 0) * (MONTH_BAR_WIDTH + CHART_GAP);
+      const target =
+        period === "dia" ? barStart : barCenter - chartViewportWidth / 2;
+      const x = Math.min(maxX, Math.max(0, target));
       chartScrollRef.current?.scrollTo({ x, animated: false });
     },
-    [isMonth, chartViewportWidth, currentBucketIndex, referenceDate],
+    [
+      isScrollable,
+      period,
+      chartViewportWidth,
+      currentBucketIndex,
+      referenceDate,
+    ],
   );
   const buckets = summary?.buckets ?? [];
   const bucketName = (label: string) => (isMonth ? `Dia ${label}` : label);
+  const selectedBucket =
+    selectedIndex !== null ? (buckets[selectedIndex] ?? null) : null;
   const maxLiters = Math.max(1, ...buckets.map(({ liters }) => liters));
 
   const bucketsWithData = buckets.filter(({ liters }) => liters > 0);
@@ -215,9 +260,7 @@ export default function HistoryScreen() {
       className="flex-1 bg-background"
     >
       <View className="px-screen pt-4">
-        <Text className="text-2xl font-bold text-foreground">
-          Histórico
-        </Text>
+        <Text className="text-2xl font-bold text-foreground">Histórico</Text>
         <Text className="text-muted-foreground mt-1">
           Veja como seu consumo mudou ao longo do tempo.
         </Text>
@@ -231,7 +274,7 @@ export default function HistoryScreen() {
 
       <View
         onLayout={handleSegmentedControlLayout}
-        className="flex-row rounded-md bg-secondary p-1 mx-screen mt-4"
+        className="flex-row rounded-md bg-secondary p-1 mx-screen mt-4 mb-4"
       >
         {segmentedControlWidth > 0 && (
           <View
@@ -269,13 +312,10 @@ export default function HistoryScreen() {
         })}
       </View>
 
-      <View
-        className="flex-1"
-        style={{ paddingBottom: tabBarClearance }}
-      >
+      <View className="flex-1" style={{ paddingBottom: tabBarClearance }}>
         <ScrollView
           className="flex-1"
-          contentContainerClassName="px-screen gap-4 pt-4"
+          contentContainerClassName="px-screen gap-4"
           showsVerticalScrollIndicator={false}
         >
           <Card>
@@ -306,25 +346,58 @@ export default function HistoryScreen() {
               {formatLiters(summary?.totalLiters ?? 0)}
             </Text>
 
-            <ScrollView
-              ref={chartScrollRef}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              onLayout={(event) =>
-                setChartViewportWidth(event.nativeEvent.layout.width)
-              }
-              onContentSizeChange={scrollChartToCurrent}
-              className="mt-6 flex-none"
-              contentContainerClassName="items-end gap-2"
-              contentContainerStyle={
-                isMonth ? undefined : { width: chartViewportWidth }
-              }
-            >
-              {buckets.map(({ label, liters, status }, index) => (
-                  <View
+            {!isLoading && (
+              <Text className="text-sm text-muted-foreground mt-1">
+                {selectedBucket
+                  ? `${bucketName(selectedBucket.label)}: ${formatLiters(selectedBucket.liters)}`
+                  : "Toque em uma barra para ver o valor exato"}
+              </Text>
+            )}
+
+            {isLoading ? (
+              <View
+                className="mt-6 items-center justify-center"
+                style={{ height: CHART_MAX_HEIGHT + 24 }}
+              >
+                <ActivityIndicator color={colors.primary} />
+              </View>
+            ) : (
+              <ScrollView
+                ref={chartScrollRef}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                onLayout={(event) =>
+                  setChartViewportWidth(event.nativeEvent.layout.width)
+                }
+                onContentSizeChange={scrollChartToCurrent}
+                className="mt-6 flex-none"
+                contentContainerClassName="items-end gap-2"
+                contentContainerStyle={
+                  isScrollable ? undefined : { width: chartViewportWidth }
+                }
+              >
+                {buckets.map(({ label, liters, status }, index) => (
+                  <Pressable
                     key={label}
-                    className={cn("items-center gap-2", !isMonth && "flex-1")}
-                    style={isMonth ? { width: MONTH_BAR_WIDTH } : undefined}
+                    onPress={() =>
+                      setSelection(
+                        selectedIndex === index
+                          ? null
+                          : { scope: selectionScope, index },
+                      )
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel={`${bucketName(label)}: ${formatLiters(liters)}`}
+                    className={cn(
+                      "items-center gap-2",
+                      !isScrollable && "flex-1",
+                    )}
+                    style={[
+                      isScrollable ? { width: MONTH_BAR_WIDTH } : undefined,
+                      selectedIndex !== null && selectedIndex !== index
+                        ? { opacity: 0.45 }
+                        : undefined,
+                    ]}
                   >
                     <View
                       className="w-full items-center justify-end"
@@ -338,7 +411,10 @@ export default function HistoryScreen() {
                             : STATUS_BAR_CLASSNAME[status],
                         )}
                         style={{
-                          height: Math.max(2, (liters / maxLiters) * CHART_MAX_HEIGHT),
+                          height: Math.max(
+                            2,
+                            (liters / maxLiters) * CHART_MAX_HEIGHT,
+                          ),
                         }}
                       />
                     </View>
@@ -352,19 +428,16 @@ export default function HistoryScreen() {
                     >
                       {label}
                     </Text>
-                  </View>
+                  </Pressable>
                 ))}
-            </ScrollView>
+              </ScrollView>
+            )}
 
             <View className="flex-row flex-wrap items-center gap-x-4 gap-y-2 mt-4">
               {LEGEND_ITEMS.map(({ label, dotClassName }) => (
                 <View key={label} className="flex-row items-center gap-2">
-                  <View
-                    className={cn("h-2 w-2 rounded-full", dotClassName)}
-                  />
-                  <Text className="text-xs text-muted-foreground">
-                    {label}
-                  </Text>
+                  <View className={cn("h-2 w-2 rounded-full", dotClassName)} />
+                  <Text className="text-xs text-muted-foreground">{label}</Text>
                 </View>
               ))}
             </View>
@@ -377,7 +450,14 @@ export default function HistoryScreen() {
           )}
 
           {highlights.map(
-            ({ id, icon: Icon, colorKey, iconBgClassName, title, description }) => (
+            ({
+              id,
+              icon: Icon,
+              colorKey,
+              iconBgClassName,
+              title,
+              description,
+            }) => (
               <Card key={id} className="flex-row items-center gap-3">
                 <View
                   className={cn(

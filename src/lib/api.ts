@@ -282,7 +282,7 @@ export type DashboardSummary = {
   monthSavingsLiters: number;
 };
 
-export type HistoryPeriod = "dia" | "semana" | "mes";
+export type HistoryPeriod = "dia" | "semana" | "mes" | "ano";
 export type BucketStatus = "normal" | "above" | "peak";
 
 export type HistoryBucket = {

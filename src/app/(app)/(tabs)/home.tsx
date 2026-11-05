@@ -20,6 +20,7 @@ import { useTabBarClearance } from "@/hooks/use-tab-bar-clearance";
 import { useToast } from "@/hooks/use-toast";
 import { consumptionApi, type DashboardSummary } from "@/lib/api";
 import { cn } from "@/utils/cn";
+import { formatLiters } from "@/utils/format-liters";
 import { useThemeColors } from "@/utils/colors";
 
 const POLL_INTERVAL_MS = 3000;
@@ -41,10 +42,6 @@ function getFormattedDate() {
   });
 
   return formatted.charAt(0).toUpperCase() + formatted.slice(1);
-}
-
-function formatLiters(value: number) {
-  return `${Math.round(value).toLocaleString("pt-BR")} L`;
 }
 
 export default function HomeScreen() {
@@ -118,7 +115,6 @@ export default function HomeScreen() {
   const remainingLiters = summary
     ? Math.max(0, summary.dailyLimit - summary.todayLiters)
     : 0;
-  const isWeeklyImprovement = (summary?.weeklyChangePercent ?? 0) <= 0;
 
   return (
     <SafeAreaView
@@ -165,12 +161,12 @@ export default function HomeScreen() {
       </View>
 
       <View
-        className="flex-1"
+        className="flex-1 mt-4"
         style={{ paddingBottom: tabBarClearance }}
       >
         <ScrollView
           className="flex-1"
-          contentContainerClassName="px-screen gap-4 pt-4"
+          contentContainerClassName="px-screen gap-4"
           showsVerticalScrollIndicator={false}
         >
           <ResidenceSelector />
@@ -231,15 +227,6 @@ export default function HomeScreen() {
               <Text className="text-title1 font-bold text-foreground mt-1">
                 {formatLiters(summary?.weeklyAverageLiters ?? 0)}
               </Text>
-              <Text
-                className={cn(
-                  "text-xs font-bold mt-1",
-                  isWeeklyImprovement ? "text-success" : "text-warning",
-                )}
-              >
-                {(summary?.weeklyChangePercent ?? 0) > 0 ? "+" : ""}
-                {summary?.weeklyChangePercent ?? 0}% vs. semana passada
-              </Text>
             </Card>
 
             <Card className="flex-1">
@@ -248,9 +235,6 @@ export default function HomeScreen() {
               </Text>
               <Text className="text-title1 font-bold text-foreground mt-1">
                 {formatLiters(summary?.monthSavingsLiters ?? 0)}
-              </Text>
-              <Text className="text-xs text-muted-foreground mt-1">
-                vs. o limite diário
               </Text>
             </Card>
           </View>
@@ -292,9 +276,6 @@ export default function HomeScreen() {
                     </Text>
                     <Text className="text-footnote text-muted-foreground mt-0.5">
                       {priorityAlert.description}
-                    </Text>
-                    <Text className="text-primary font-bold text-xs mt-2">
-                      Ver detalhes
                     </Text>
                   </View>
                 </View>

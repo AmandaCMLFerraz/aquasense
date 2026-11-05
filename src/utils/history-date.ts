@@ -88,6 +88,12 @@ export function formatPeriodLabel(
     return `${formatDay(weekStart)} a ${formatDay(weekEnd)}`;
   }
 
+  if (period === "ano") {
+    return date.getFullYear() === today.getFullYear()
+      ? "Este ano"
+      : String(date.getFullYear());
+  }
+
   if (
     date.getFullYear() === today.getFullYear() &&
     date.getMonth() === today.getMonth()

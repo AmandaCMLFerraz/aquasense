@@ -93,12 +93,12 @@ export default function ConsumerUnitsScreen() {
       </View>
 
       <View
-        className="flex-1"
+        className="flex-1 mt-4"
         style={{ paddingBottom: tabBarClearance }}
       >
         <ScrollView
           className="flex-1"
-          contentContainerClassName="px-screen gap-4 pt-4"
+          contentContainerClassName="px-screen gap-4"
           showsVerticalScrollIndicator={false}
         >
           {!isLoading && units.length === 0 && (

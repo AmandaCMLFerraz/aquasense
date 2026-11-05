@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { devicesApi, type Device } from "@/lib/api";
 import { cn } from "@/utils/cn";
 import { useThemeColors } from "@/utils/colors";
+import { formatLiters } from "@/utils/format-liters";
 
 const POLL_INTERVAL_MS = 7000;
 
@@ -78,9 +79,7 @@ export default function DevicesScreen() {
       className="flex-1 bg-background"
     >
       <View className="px-screen pt-4">
-        <Text className="text-2xl font-bold text-foreground">
-          Dispositivos
-        </Text>
+        <Text className="text-2xl font-bold text-foreground">Dispositivos</Text>
         <Text className="text-muted-foreground mt-1">
           {filteredDevices.length}{" "}
           {filteredDevices.length === 1
@@ -90,13 +89,10 @@ export default function DevicesScreen() {
         </Text>
       </View>
 
-      <View
-        className="flex-1"
-        style={{ paddingBottom: tabBarClearance }}
-      >
+      <View className="flex-1 mt-4" style={{ paddingBottom: tabBarClearance }}>
         <ScrollView
           className="flex-1"
-          contentContainerClassName="px-screen gap-4 pt-4"
+          contentContainerClassName="px-screen gap-4"
           showsVerticalScrollIndicator={false}
         >
           <ResidenceSelector />
@@ -184,7 +180,7 @@ export default function DevicesScreen() {
                         Hoje
                       </Text>
                       <Text className="font-bold text-foreground mt-1">
-                        {device.todayConsumption} L
+                        {formatLiters(device.todayConsumption)}
                       </Text>
                     </View>
                     <View>

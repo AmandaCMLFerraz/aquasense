@@ -1,11 +1,20 @@
-import { Platform } from "react-native";
+import { Platform, TurboModuleRegistry } from "react-native";
 
 import { apiRequest } from "@/lib/api";
 
 type FirebaseMessaging = typeof import("@react-native-firebase/messaging");
 
+function hasFirebaseNativeModule() {
+  try {
+    return TurboModuleRegistry.get("NativeRNFBTurboApp") != null;
+  } catch {
+    return false;
+  }
+}
+
 function loadMessaging() {
   if (Platform.OS === "web") return null;
+  if (!hasFirebaseNativeModule()) return null;
 
   try {
     const module =

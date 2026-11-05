@@ -13,6 +13,7 @@ import { ApiError, useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { devicesApi, type DeviceDetail } from "@/lib/api";
 import { cn } from "@/utils/cn";
+import { formatLiters } from "@/utils/format-liters";
 import { useThemeColors } from "@/utils/colors";
 
 const POLL_INTERVAL_MS = 7000;
@@ -35,10 +36,6 @@ function formatElapsed(isoDate: string | null): string {
 
   const days = Math.floor(hours / 24);
   return `${days} d`;
-}
-
-function formatLiters(value: number) {
-  return `${Math.round(value).toLocaleString("pt-BR")} L`;
 }
 
 function formatInstalledDate(isoDate: string) {
